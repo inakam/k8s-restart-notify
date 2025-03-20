@@ -5,7 +5,7 @@
 # https://docs.docker.com/go/dockerfile-reference/
 
 ARG RUST_VERSION=1.84.1
-ARG APP_NAME=johari-mirror
+ARG APP_NAME=k8s-restart-notify
 
 ################################################################################
 # xx is a helper for cross-compilation.

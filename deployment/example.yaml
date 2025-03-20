@@ -2,14 +2,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: johari-mirror
-  name: johari-mirror
+    app: k8s-restart-notify
+  name: k8s-restart-notify
   namespace: NAMESPACE
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: johari-mirror
+      app: k8s-restart-notify
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -19,7 +19,7 @@ spec:
     metadata:
       annotations: {}
       labels:
-        app: johari-mirror
+        app: k8s-restart-notify
     spec:
       automountServiceAccountToken: true
       containers:
@@ -29,17 +29,17 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: token
-                  name: johari-mirror-slack-api-token
+                  name: k8s-restart-notify-slack-api-token
             - name: SLACK_NOTIFICATION_CONFIG
-              value: '*/*/*=NOTIFICATION_CHANNEL'
-          image: ghcr.io/flywheel-jp/johari-mirror:latest
+              value: "*/*/*=NOTIFICATION_CHANNEL"
+          image: ghcr.io/inakam/k8s-restart-notify:latest
           lifecycle:
             preStop:
               exec:
                 command:
                   - sleep
-                  - '20'
-          name: johari-mirror
+                  - "20"
+          name: k8s-restart-notify
           resources:
             limits:
               memory: 500Mi
@@ -59,23 +59,23 @@ spec:
       securityContext:
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: johari-mirror
+      serviceAccountName: k8s-restart-notify
       terminationGracePeriodSeconds: 60
       volumes: []
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: johari-mirror
+  name: k8s-restart-notify
   namespace: NAMESPACE
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: johari-mirror
+  name: k8s-restart-notify
 rules:
   - apiGroups:
-      - ''
+      - ""
     resources:
       - pods
       - pods/log
@@ -87,12 +87,12 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: johari-mirror
+  name: k8s-restart-notify
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: johari-mirror
+  name: k8s-restart-notify
 subjects:
   - kind: ServiceAccount
-    name: johari-mirror
+    name: k8s-restart-notify
     namespace: NAMESPACE

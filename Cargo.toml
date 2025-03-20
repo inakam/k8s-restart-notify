@@ -1,5 +1,5 @@
 [package]
-name = "johari-mirror"
+name = "k8s-restart-notify"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
