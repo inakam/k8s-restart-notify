@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("johari_mirror=debug"),
+        env_logger::Env::default().default_filter_or("k8s-restart-notifier=debug"),
     )
     .init();
 
@@ -12,10 +12,12 @@ async fn main() -> anyhow::Result<()> {
     let client = Client::try_default().await?;
 
     let slack_token = std::env::var("SLACK_TOKEN")?;
+    let region = std::env::var("REGION")?;
+    let project_id = std::env::var("PROJECT_ID")?;
 
     let (tx, rx) = mpsc::channel(320);
-    let watch_handle = tokio::spawn(johari_mirror::kubernetes::watch(client, tx));
-    let slack_handle = tokio::spawn(johari_mirror::slack::slack_send(slack_token, rx));
+    let watch_handle = tokio::spawn(k8s_restart_notify::kubernetes::watch(client, tx, region, project_id));
+    let slack_handle = tokio::spawn(k8s_restart_notify::slack::slack_send(slack_token, rx));
 
     watch_handle.await??;
     slack_handle.await?;

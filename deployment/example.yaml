@@ -32,6 +32,10 @@ spec:
                   name: k8s-restart-notify-slack-api-token
             - name: SLACK_NOTIFICATION_CONFIG
               value: "*/*/*=NOTIFICATION_CHANNEL"
+            - name: REGION
+              value: "asia-northeast1"
+            - name: PROJECT_ID
+              value: "<YOUR_PROJECT_ID>"
           image: ghcr.io/inakam/k8s-restart-notify:latest
           lifecycle:
             preStop:

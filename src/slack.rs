@@ -1,6 +1,7 @@
 use anyhow::{bail, Context};
 use serde_json::json;
 use tokio::sync::mpsc;
+use chrono::Utc;
 
 use crate::message;
 
@@ -49,11 +50,16 @@ async fn upload_log_file(
         Ok(log) if !log.is_empty() => log.to_owned(),
         _empty_or_error => return Ok(None),
     };
+    
+    // 現在のタイムスタンプを取得
+    let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
+    
     let title = format!(
-        "{}_{}_{}",
+        "{}_{}_{}_{}_restart",
         restart_info.namespace.as_ref().unwrap_or(&"".to_owned()),
         &restart_info.pod_name,
-        &restart_info.container_name
+        &restart_info.container_name,
+        timestamp
     );
 
     let length = log.len().to_string();

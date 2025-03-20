@@ -1,15 +1,7 @@
 use serde_json::json;
 
-/// Number of log lines to include in the main message
-const LOG_SUMMARY_LINES: usize = 20;
-
-/// Maximum length of `text` in `section` blocks in Slack messages
-/// https://api.slack.com/reference/block-kit/blocks#section_fields
-const SECTION_TEXT_LIMIT: usize = 3000;
-
-/// Number of characters to include in the log summary.
-/// Set 200 characters margin for header and footer.
-const LOG_SUMMARY_CHARS: usize = SECTION_TEXT_LIMIT - 200;
+/// GKEコンソールURLのベース
+const GKE_CONSOLE_BASE_URL: &str = "https://console.cloud.google.com/kubernetes/pod";
 
 #[derive(Debug)]
 pub struct ContainerRestartInfo {
@@ -23,51 +15,121 @@ pub struct ContainerRestartInfo {
     pub resources: ContainerResources,
     pub logs: ContainerLog,
     pub channel: String,
+    pub region: String,
+    pub project_id: String,
 }
 
 impl ContainerRestartInfo {
     pub fn to_message(&self, file_url: &Option<String>) -> serde_json::Value {
+        let gke_link = self.build_gke_link();
+        
         let container_identity = format!(
             r"Namespace: {}
 Pod: `{}`
 Container Name: `{}`
-Container Image: `{}`
-Node Name: {}",
+Image: `{}`
+Node: {}",
             format_name(&self.namespace),
             &self.pod_name,
             &self.container_name,
             &self.container_image,
             format_name(&self.node_name),
         );
-        let stats = build_container_stats(self.restart_count, &self.last_state);
-        let resources = self.resources.to_message();
-        let logs = self.logs.to_message(file_url);
-
-        json!([
-            {
+        
+        let primary_fields = vec![
+            markdown_text(&format!("Restart Count: `{}`", self.restart_count)),
+        ];
+        
+        let mut blocks = vec![
+            json!({
                 "type": "header",
                 "text": {
                     "type": "plain_text",
                     "text": "Container restarted",
                 },
-            },
-            {
+            }),
+            json!({
                 "type": "section",
                 "text": markdown_text(&container_identity),
-            },
-            {
+            }),
+            json!({
                 "type": "section",
-                "fields": stats,
-            },
-            {
+                "fields": primary_fields,
+            }),
+            json!({
+                "type": "actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "Go to GKE Console",
+                        },
+                        "url": gke_link,
+                        "style": "primary"
+                    }
+                ]
+            }),
+        ];
+        
+        // 終了状態の詳細情報（折りたたみ表示）
+        if let Some(state) = &self.last_state {
+            let state_details = format!(
+                r"Exit Code: `{}`
+Signal: {}
+Reason: {}
+Message: {}
+Started at: {}
+Finished at: {}",
+                state.exit_code,
+                state.signal.map_or_else(|| "none".to_owned(), |s| format!("`{}`", s)),
+                format_name(&state.reason),
+                format_name(&state.message),
+                format_name(&state.started_at),
+                format_name(&state.finished_at),
+            );
+            
+            blocks.push(json!({
+                "type": "section",
+                "text": markdown_text("*Details of the termination state*")
+            }));
+            
+            blocks.push(json!({
+                "type": "section",
+                "text": markdown_text(&state_details)
+            }));
+        }
+        
+        // リソース情報（折りたたみ表示）
+        let resources = self.resources.to_message();
+        if !resources.is_empty() {
+            blocks.push(json!({
+                "type": "section",
+                "text": markdown_text("*Resource Information*")
+            }));
+            
+            blocks.push(json!({
                 "type": "section",
                 "fields": resources,
-            },
-            {
+            }));
+        }
+        
+        // ログへのリンク
+        if let Some(url) = file_url {
+            blocks.push(json!({
                 "type": "section",
-                "text": markdown_text(&logs),
-            },
-        ])
+                "text": markdown_text(&format!("<{}|*Check the logs before restart*>", url)),
+            }));
+        }
+        
+        json!(blocks)
+    }
+    
+    /// GKEコンソールへのリンクを生成
+    fn build_gke_link(&self) -> String {
+        let namespace = self.namespace.as_deref().unwrap_or("default");
+        // https://console.cloud.google.com/kubernetes/pod/<region>/<project_id>/<namespace>/<pod_name>/details を組み立てる
+        format!("{}/{}/{}/{}/{}/details", GKE_CONSOLE_BASE_URL, self.region, self.project_id, namespace, self.pod_name)
     }
 }
 
@@ -81,41 +143,6 @@ impl std::fmt::Display for ContainerRestartInfo {
             self.container_name,
         )
     }
-}
-
-fn build_container_stats(
-    restart_count: i32,
-    state: &Option<ContainerState>,
-) -> Vec<serde_json::Value> {
-    let mut container_stats = vec![markdown_text(&format!(
-        "Restart Count: `{}`",
-        restart_count
-    ))];
-    if let Some(state) = state {
-        container_stats.push(markdown_text(" ")); // alignment
-        container_stats.push(markdown_text(&format!("Exit Code: `{}`", state.exit_code)));
-        let signal = state
-            .signal
-            .map_or_else(|| "none".to_owned(), |s| format!("`{}`", s));
-        container_stats.push(markdown_text(&format!("Signal: {}", signal)));
-        container_stats.push(markdown_text(&format!(
-            "Reason: {}",
-            format_name(&state.reason)
-        )));
-        container_stats.push(markdown_text(&format!(
-            "Message: {}",
-            format_name(&state.message)
-        )));
-        container_stats.push(markdown_text(&format!(
-            "Started at: {}",
-            format_name(&state.started_at)
-        )));
-        container_stats.push(markdown_text(&format!(
-            "Finished at: {}",
-            format_name(&state.finished_at)
-        )));
-    }
-    container_stats
 }
 
 #[derive(Debug)]
@@ -153,48 +180,11 @@ impl ContainerResources {
 #[derive(Debug)]
 pub struct ContainerLog(pub Result<String, String>);
 
-impl ContainerLog {
-    fn to_message(&self, file_url: &Option<String>) -> String {
-        match &self.0 {
-            Ok(log) => {
-                if log.is_empty() {
-                    "*Container logs before restart*\n(empty)".to_owned()
-                } else {
-                    // file_url is non-empty when log is not empty
-                    let file_url = file_url.as_deref().unwrap_or_default();
-                    format!(
-                        r"<{}|*Container logs before restart*>
-```
-{}
-```",
-                        file_url,
-                        Self::tail_lines(log)
-                    )
-                }
-            }
-            Err(err) => format!("Failed to get container logs: {}", err),
-        }
-    }
-
-    /// Returns suffix of `log`, shorter one of:
-    /// - last `LOG_SUMMARY_LINES` lines
-    /// - last `LOG_SUMMARY_CHARS` characters
-    fn tail_lines(log: &str) -> String {
-        let mut lines = log
-            .lines()
-            .rev()
-            .take(LOG_SUMMARY_LINES)
-            .collect::<Vec<_>>();
-        lines.reverse();
-        suffix(&lines.join("\n"), LOG_SUMMARY_CHARS).to_owned()
-    }
-}
-
 fn format_name(name: &Option<impl AsRef<str>>) -> String {
     if let Some(name) = name.as_ref() {
         format!("`{}`", name.as_ref())
     } else {
-        "unknown".to_owned()
+        "Unknown".to_owned()
     }
 }
 
@@ -203,22 +193,6 @@ fn markdown_text(text: &str) -> serde_json::Value {
         "type": "mrkdwn",
         "text": text,
     })
-}
-
-/// Returns the last `limit` characters of `text`
-fn suffix(text: &str, limit: usize) -> &str {
-    if limit == 0 {
-        return "";
-    }
-    // string slicing is in bytes, not chars, so we need to count chars
-    let char_count = text.chars().count();
-    if let Some(begin_char) = char_count.checked_sub(limit) {
-        let begin_char = begin_char.min(char_count);
-        let begin_byte = text.char_indices().nth(begin_char).unwrap().0;
-        &text[begin_byte..]
-    } else {
-        text
-    }
 }
 
 #[cfg(test)]
@@ -245,5 +219,21 @@ mod tests {
         assert_eq!(suffix("こんにちは", 2), "ちは");
         assert_eq!(suffix("こんにちは", 1), "は");
         assert_eq!(suffix("こんにちは", 0), "");
+    }
+    
+    /// テスト用の関数
+    fn suffix(text: &str, limit: usize) -> &str {
+        if limit == 0 {
+            return "";
+        }
+        // string slicing is in bytes, not chars, so we need to count chars
+        let char_count = text.chars().count();
+        if let Some(begin_char) = char_count.checked_sub(limit) {
+            let begin_char = begin_char.min(char_count);
+            let begin_byte = text.char_indices().nth(begin_char).unwrap().0;
+            &text[begin_byte..]
+        } else {
+            text
+        }
     }
 }
