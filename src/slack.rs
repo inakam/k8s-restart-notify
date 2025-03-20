@@ -122,6 +122,7 @@ async fn post_message(
         "channel": slack_channel,
         "blocks": restart_info.to_message(file_url),
         "unfurl_links": false,
+        "unfurl_media": false,
     });
     let resp = slack
         .post(POST_MESSAGE_URL)
