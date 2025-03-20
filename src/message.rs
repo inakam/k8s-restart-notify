@@ -25,15 +25,17 @@ impl ContainerRestartInfo {
         
         let container_identity = format!(
             r"Namespace: {}
-Pod: `{}`
+Pod:            `{}`
 Container Name: `{}`
-Image: `{}`
-Node: {}",
+Image:          `{}`
+Node:           `{}`
+Reason:         `{}`",
             format_name(&self.namespace),
             &self.pod_name,
             &self.container_name,
             &self.container_image,
             format_name(&self.node_name),
+            format_name(&self.last_state.as_ref().unwrap().reason),
         );
         
         let primary_fields = vec![
@@ -71,48 +73,6 @@ Node: {}",
                 ]
             }),
         ];
-        
-        // 終了状態の詳細情報（折りたたみ表示）
-        if let Some(state) = &self.last_state {
-            let state_details = format!(
-                r"Exit Code: `{}`
-Signal: {}
-Reason: {}
-Message: {}
-Started at: {}
-Finished at: {}",
-                state.exit_code,
-                state.signal.map_or_else(|| "none".to_owned(), |s| format!("`{}`", s)),
-                format_name(&state.reason),
-                format_name(&state.message),
-                format_name(&state.started_at),
-                format_name(&state.finished_at),
-            );
-            
-            blocks.push(json!({
-                "type": "section",
-                "text": markdown_text("*Details of the termination state*")
-            }));
-            
-            blocks.push(json!({
-                "type": "section",
-                "text": markdown_text(&state_details)
-            }));
-        }
-        
-        // リソース情報（折りたたみ表示）
-        let resources = self.resources.to_message();
-        if !resources.is_empty() {
-            blocks.push(json!({
-                "type": "section",
-                "text": markdown_text("*Resource Information*")
-            }));
-            
-            blocks.push(json!({
-                "type": "section",
-                "fields": resources,
-            }));
-        }
         
         // ログへのリンク
         if let Some(url) = file_url {
