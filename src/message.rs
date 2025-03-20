@@ -23,13 +23,14 @@ impl ContainerRestartInfo {
     pub fn to_message(&self, file_url: &Option<String>) -> serde_json::Value {
         let gke_link = self.build_gke_link();
         
+        // Slackに合わせて大まかに揃うようにする
         let container_identity = format!(
-            r"Namespace: {}
-Pod:            `{}`
+            r"Namespace:        {}
+Pod:                   `{}`
 Container Name: `{}`
-Image:          `{}`
-Node:           `{}`
-Reason:         `{}`",
+Image:               `{}`
+Node:                 {}
+Reason:              {}",
             format_name(&self.namespace),
             &self.pod_name,
             &self.container_name,
