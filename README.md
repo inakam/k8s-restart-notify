@@ -31,6 +31,9 @@ All environment variables are required.
 | :-------------------------- | :------------------------------------------------------------------------ |
 | `SLACK_TOKEN`               | Slack Bot User OAuth Token. See Slack authentication section.             |
 | `SLACK_NOTIFICATION_CONFIG` | Filters to configure notification destination. See the following section. |
+| `REGION`                    | The region of the Kubernetes cluster.                                     |
+| `PROJECT_ID`                | The project ID of the Kubernetes cluster.                                 |
+| `CLUSTER_ID`                | The cluster ID of the Kubernetes cluster.                                 |
 
 #### SLACK_NOTIFICATION_CONFIG
 
