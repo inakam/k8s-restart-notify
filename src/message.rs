@@ -26,11 +26,11 @@ impl ContainerRestartInfo {
         
         // Slackに合わせて大まかに揃うようにする
         let container_identity = format!(
-            r"Namespace:        {}
-Pod:                     `{}`
+            r"Namespace:         {}
+Pod:                      `{}`
 Container Name: `{}`
-Node:                 {}
-Reason:              {}",
+Node:                   {}
+Reason:                {}",
             format_name(&self.namespace),
             &self.pod_name,
             &self.container_name,
