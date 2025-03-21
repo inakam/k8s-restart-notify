@@ -35,6 +35,8 @@ spec:
               value: "asia-northeast1"
             - name: PROJECT_ID
               value: "<YOUR_PROJECT_ID>"
+            - name: CLUSTER_ID
+              value: "<YOUR_CLUSTER_ID>"
           image: ghcr.io/inakam/k8s-restart-notify:latest
           lifecycle:
             preStop:
