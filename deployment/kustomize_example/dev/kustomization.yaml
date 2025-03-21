@@ -1,0 +1,29 @@
+resources:
+  - ../base
+
+patches:
+  - target:
+      kind: ServiceAccount
+      name: k8s-restart-notify
+    path: sa.yaml
+  - target:
+      kind: Deployment
+      name: k8s-restart-notify
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/value
+        value: "*/*/*=<YOUR_SLACK_CHANNEL>"
+  - target:
+      kind: Deployment
+      name: k8s-restart-notify
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/2/value
+        value: "asia-northeast1"
+  - target:
+      kind: Deployment
+      name: k8s-restart-notify
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/3/value
+        value: "<YOUR_PROJECT_ID>"

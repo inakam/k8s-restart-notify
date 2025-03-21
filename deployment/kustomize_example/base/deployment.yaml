@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: k8s-restart-notify
+  name: k8s-restart-notify
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-restart-notify
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations: {}
+      labels:
+        app: k8s-restart-notify
+    spec:
+      automountServiceAccountToken: true
+      containers:
+        - args: []
+          env:
+            - name: SLACK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  key: token
+                  name: k8s-restart-notify-slack-api-token
+            - name: SLACK_NOTIFICATION_CONFIG
+              value: "*/*/*=<YOUR_SLACK_CHANNEL>"
+            - name: REGION
+              value: "asia-northeast1"
+            - name: PROJECT_ID
+              value: "<YOUR_PROJECT_ID>"
+          image: ghcr.io/inakam/k8s-restart-notify:latest
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "20"
+          name: k8s-restart-notify
+          resources:
+            limits:
+              memory: 500Mi
+            requests:
+              cpu: 50m
+              memory: 500Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add: []
+              drop:
+                - all
+            privileged: false
+            readOnlyRootFilesystem: true
+      initContainers: []
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: k8s-restart-notify
+      terminationGracePeriodSeconds: 60
+      volumes: []
