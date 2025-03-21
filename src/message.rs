@@ -17,6 +17,7 @@ pub struct ContainerRestartInfo {
     pub channel: String,
     pub region: String,
     pub project_id: String,
+    pub cluster_id: String,
 }
 
 impl ContainerRestartInfo {
@@ -26,15 +27,13 @@ impl ContainerRestartInfo {
         // Slackに合わせて大まかに揃うようにする
         let container_identity = format!(
             r"Namespace:        {}
-Pod:                   `{}`
+Pod:                     `{}`
 Container Name: `{}`
-Image:               `{}`
 Node:                 {}
 Reason:              {}",
             format_name(&self.namespace),
             &self.pod_name,
             &self.container_name,
-            &self.container_image,
             format_name(&self.node_name),
             format_name(&self.last_state.as_ref().unwrap().reason),
         );
@@ -75,22 +74,14 @@ Reason:              {}",
             }),
         ];
         
-        // ログへのリンク
-        if let Some(url) = file_url {
-            blocks.push(json!({
-                "type": "section",
-                "text": markdown_text(&format!("<{}|*Check the logs before restart*>", url)),
-            }));
-        }
-        
         json!(blocks)
     }
     
     /// GKEコンソールへのリンクを生成
     fn build_gke_link(&self) -> String {
         let namespace = self.namespace.as_deref().unwrap_or("default");
-        // https://console.cloud.google.com/kubernetes/pod/<region>/<project_id>/<namespace>/<pod_name>/details を組み立てる
-        format!("{}/{}/{}/{}/{}/details", GKE_CONSOLE_BASE_URL, self.region, self.project_id, namespace, self.pod_name)
+        // https://console.cloud.google.com/kubernetes/pod/<region>/<cluster_id>/<namespace>/<pod_name>/details?project=<project_id> を組み立てる
+        format!("{}/{}/{}/{}/{}/details?project={}", GKE_CONSOLE_BASE_URL, self.region, self.cluster_id, namespace, self.pod_name, self.project_id)
     }
 }
 

@@ -40,6 +40,7 @@ pub async fn watch(
     tx: mpsc::Sender<message::ContainerRestartInfo>,
     region: String,
     project_id: String,
+    cluster_id: String,
 ) -> anyhow::Result<()> {
     // Read pods in all namespaces into the typed interface from k8s-openapi
     let pods: Api<Pod> = Api::all(client.clone());
@@ -71,6 +72,7 @@ pub async fn watch(
                     &tx,
                     &region,
                     &project_id,
+                    &cluster_id,
                 )
                 .await?;
             }
@@ -104,6 +106,7 @@ async fn process_applied(
     tx: &mpsc::Sender<message::ContainerRestartInfo>,
     region: &str,
     project_id: &str,
+    cluster_id: &str,
 ) -> anyhow::Result<()> {
     match pod_restart_count.entry(p.uid().unwrap()) {
         Entry::Occupied(mut entry) => {
@@ -139,7 +142,7 @@ async fn process_applied(
                     }
                 };
                 let message =
-                    describe_container_status(client.clone(), p, container, channel, region, project_id).await;
+                    describe_container_status(client.clone(), p, container, channel, region, project_id, cluster_id).await;
                 log::debug!(
                     "Message queue capacity: {} / {}",
                     tx.capacity(),
@@ -193,6 +196,7 @@ async fn describe_container_status(
     channel: &str,
     region: &str,
     project_id: &str,
+    cluster_id: &str,
 ) -> message::ContainerRestartInfo {
     let pods_ns: Api<Pod> = Api::namespaced(client, p.namespace().as_ref().unwrap());
     let logs = tokio::time::timeout(
@@ -225,6 +229,7 @@ async fn describe_container_status(
         channel: channel.to_owned(),
         region: region.to_owned(),
         project_id: project_id.to_owned(),
+        cluster_id: cluster_id.to_owned(),
     }
 }
 
