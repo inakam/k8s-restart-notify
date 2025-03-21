@@ -4,7 +4,7 @@ use tokio::sync::mpsc;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("k8s-restart-notifier=debug"),
+        env_logger::Env::default().default_filter_or("k8s-restart-notify=debug"),
     )
     .init();
 
