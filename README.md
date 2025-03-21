@@ -1,24 +1,24 @@
-# johari-mirror
+# k8s-restart-notify
 
-[![Rust build and test](https://github.com/flywheel-jp/johari-mirror/actions/workflows/rust.yml/badge.svg)](https://github.com/flywheel-jp/johari-mirror/actions/workflows/rust.yml)
+[![Rust build and test](https://github.com/inakam/k8s-restart-notify/actions/workflows/rust.yml/badge.svg)](https://github.com/inakam/k8s-restart-notify/actions/workflows/rust.yml)
 
-johari-mirror monitors a Kubernetes cluster to detect container restarts and
-notify restart reasons and logs to Slack.
+Fork of [flywheel-jp/johari-mirror](https://github.com/flywheel-jp/johari-mirror),
+with some changes to make it work with my own Kubernetes cluster.
 
 ## Overview
 
-johari-mirror collects information about restarted containers and post notifications
+k8s-restart-notify collects information about restarted containers and post notifications
 to Slack like the following.
 
 ![Example Slack notification](docs/example-notification.png)
 
 ## Installation
 
-You can use [example.yaml](deployment/example.yaml) to deploy johari-mirror to your
+You can use [example.yaml](deployment/example.yaml) to deploy k8s-restart-notify to your
 Kubernetes cluster with `NAMESPACE` and `NOTIFICATION_CHANNEL` replaced.
 
 ```sh
-kubectl create secret generic johari-mirror-slack-api-token \
+kubectl create secret generic k8s-restart-notify-slack-api-token \
   --from-literal=token=<your-slack-token>
 kubectl apply -f example.yaml
 ```
@@ -27,9 +27,9 @@ kubectl apply -f example.yaml
 
 All environment variables are required.
 
-| Name | Description |
-|:--|:--|
-| `SLACK_TOKEN` | Slack Bot User OAuth Token. See Slack authentication section. |
+| Name                        | Description                                                               |
+| :-------------------------- | :------------------------------------------------------------------------ |
+| `SLACK_TOKEN`               | Slack Bot User OAuth Token. See Slack authentication section.             |
 | `SLACK_NOTIFICATION_CONFIG` | Filters to configure notification destination. See the following section. |
 
 #### SLACK_NOTIFICATION_CONFIG
@@ -38,7 +38,7 @@ All environment variables are required.
 notification destination delimited by commas in
 `namespace/pod/container=channel,...,namespace/pod/container=channel` format.
 
-- When a container restart is detected, johari-mirror determines the Slack channel
+- When a container restart is detected, k8s-restart-notify determines the Slack channel
   to send notification by its `namespace`, `pod` name and `container` name.
 - Earlier rules have higher priority.
 - Each of `namespace`, `pod` or `container` in a rule may contain `*` wildcards.
@@ -60,7 +60,7 @@ Examples
 Ref: [Quickstart | Slack](https://api.slack.com/start/quickstart)
 
 Create a Slack App and install it to your workspace.
-johari-mirror uses
+k8s-restart-notify uses
 [`Bot User OAuth Token`](https://api.slack.com/authentication/token-types#bot)
 in the environment variable `SLACK_TOKEN`.
 
@@ -92,3 +92,4 @@ MIT
 ## Related projects
 
 - [airwallex/k8s-pod-restart-info-collector](https://github.com/airwallex/k8s-pod-restart-info-collector)
+- [flywheel-jp/johari-mirror](https://github.com/flywheel-jp/johari-mirror)
