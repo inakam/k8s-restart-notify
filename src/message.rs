@@ -21,7 +21,7 @@ pub struct ContainerRestartInfo {
 }
 
 impl ContainerRestartInfo {
-    pub fn to_message(&self, file_url: &Option<String>) -> serde_json::Value {
+    pub fn to_message(&self) -> serde_json::Value {
         let gke_link = self.build_gke_link();
         // last_stateがNoneの場合は、reasonを取得する
         let reason = if let Some(last_state) = &self.last_state {
@@ -41,7 +41,7 @@ Reason:                {}",
             &self.pod_name,
             &self.container_name,
             format_name(&self.node_name),
-            format_name(&self.last_state.as_ref().unwrap().reason),
+            reason,
         );
 
         let primary_fields = vec![markdown_text(&format!(
@@ -49,7 +49,7 @@ Reason:                {}",
             self.restart_count
         ))];
 
-        let mut blocks = vec![
+        let blocks = vec![
             json!({
                 "type": "header",
                 "text": {
@@ -128,22 +128,6 @@ pub struct ContainerResources {
     pub requests: Vec<(String, String)>,
 }
 
-impl ContainerResources {
-    fn to_message(&self) -> Vec<serde_json::Value> {
-        if self.limits.is_empty() && self.requests.is_empty() {
-            return vec![markdown_text("No resource limits or requests")];
-        }
-        let mut message = Vec::new();
-        for (resource, quantity) in &self.limits {
-            message.push(markdown_text(&format!("{resource} limit: `{quantity}`")));
-        }
-        for (resource, quantity) in &self.requests {
-            message.push(markdown_text(&format!("{resource} request: `{quantity}`")));
-        }
-        message
-    }
-}
-
 #[derive(Debug)]
 pub struct ContainerLog(pub Result<String, String>);
 
@@ -164,8 +148,6 @@ fn markdown_text(text: &str) -> serde_json::Value {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_suffix() {
         assert_eq!(suffix("hello", 6), "hello");
