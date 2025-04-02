@@ -23,6 +23,12 @@ pub struct ContainerRestartInfo {
 impl ContainerRestartInfo {
     pub fn to_message(&self, file_url: &Option<String>) -> serde_json::Value {
         let gke_link = self.build_gke_link();
+        // last_stateがNoneの場合は、reasonを取得する
+        let reason = if let Some(last_state) = &self.last_state {
+            last_state.reason.as_deref().unwrap_or("Unknown")
+        } else {
+            "Unknown"
+        };
 
         // Slackに合わせて大まかに揃うようにする
         let container_identity = format!(
