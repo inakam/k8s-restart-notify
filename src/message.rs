@@ -23,7 +23,7 @@ pub struct ContainerRestartInfo {
 impl ContainerRestartInfo {
     pub fn to_message(&self, file_url: &Option<String>) -> serde_json::Value {
         let gke_link = self.build_gke_link();
-        
+
         // Slackに合わせて大まかに揃うようにする
         let container_identity = format!(
             r"Namespace:         {}
@@ -37,11 +37,12 @@ Reason:                {}",
             format_name(&self.node_name),
             format_name(&self.last_state.as_ref().unwrap().reason),
         );
-        
-        let primary_fields = vec![
-            markdown_text(&format!("Restart Count: `{}`", self.restart_count)),
-        ];
-        
+
+        let primary_fields = vec![markdown_text(&format!(
+            "Restart Count: `{}`",
+            self.restart_count
+        ))];
+
         let mut blocks = vec![
             json!({
                 "type": "header",
@@ -73,15 +74,23 @@ Reason:                {}",
                 ]
             }),
         ];
-        
+
         json!(blocks)
     }
-    
+
     /// GKEコンソールへのリンクを生成
     fn build_gke_link(&self) -> String {
         let namespace = self.namespace.as_deref().unwrap_or("default");
         // https://console.cloud.google.com/kubernetes/pod/<region>/<cluster_id>/<namespace>/<pod_name>/details?project=<project_id> を組み立てる
-        format!("{}/{}/{}/{}/{}/details?project={}", GKE_CONSOLE_BASE_URL, self.region, self.cluster_id, namespace, self.pod_name, self.project_id)
+        format!(
+            "{}/{}/{}/{}/{}/details?project={}",
+            GKE_CONSOLE_BASE_URL,
+            self.region,
+            self.cluster_id,
+            namespace,
+            self.pod_name,
+            self.project_id
+        )
     }
 }
 
@@ -172,7 +181,7 @@ mod tests {
         assert_eq!(suffix("こんにちは", 1), "は");
         assert_eq!(suffix("こんにちは", 0), "");
     }
-    
+
     /// テスト用の関数
     fn suffix(text: &str, limit: usize) -> &str {
         if limit == 0 {

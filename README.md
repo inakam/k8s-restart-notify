@@ -25,7 +25,7 @@ kubectl apply -f example.yaml
 
 ### Environment variables
 
-All environment variables are required.
+All environment variables are required except `IGNORED_NAMESPACES`.
 
 | Name                        | Description                                                               |
 | :-------------------------- | :------------------------------------------------------------------------ |
@@ -34,6 +34,7 @@ All environment variables are required.
 | `REGION`                    | The region of the Kubernetes cluster.                                     |
 | `PROJECT_ID`                | The project ID of the Kubernetes cluster.                                 |
 | `CLUSTER_ID`                | The cluster ID of the Kubernetes cluster.                                 |
+| `IGNORED_NAMESPACES`        | Optional. Comma-separated list of namespaces to ignore.                   |
 
 #### SLACK_NOTIFICATION_CONFIG
 
@@ -57,6 +58,21 @@ Examples
     to `monitoring-coredns` channel.
   - Restarts of other pods in `kube-system` namespace are not notified.
   - Restarts in the other namespaces are notified to `monitoring` channel.
+
+#### IGNORED_NAMESPACES
+
+`IGNORED_NAMESPACES` environment variable defines a comma-separated list of namespaces
+to ignore. Container restarts in these namespaces will not trigger notifications.
+
+Examples:
+
+- `kube-system,monitoring,logging`
+  - Restarts in `kube-system`, `monitoring`, and `logging` namespaces will be ignored.
+- `kube-system, monitoring, logging`
+  - Spaces around commas are allowed and will be trimmed.
+
+This configuration is useful for reducing noise from system namespaces that have frequent
+restarts which aren't relevant to application monitoring.
 
 ### Slack authentication
 

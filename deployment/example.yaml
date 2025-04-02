@@ -1,3 +1,12 @@
+# 設定値を環境に合わせて変更してください。
+# Please change the following parameters to match your environment.
+#
+# - NAMESPACE: Kubernetesのnamespace
+# - NOTIFICATION_CHANNEL: Slackのチャンネル名または ID
+# - REGION: クラスタがあるリージョン
+# - PROJECT_ID: クラスタがあるプロジェクト ID
+# - CLUSTER_ID: クラスタ ID
+# - IGNORED_NAMESPACES: 無視するNamespace (省略可能)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -38,6 +47,9 @@ spec:
               value: "<YOUR_PROJECT_ID>"
             - name: CLUSTER_ID
               value: "<YOUR_CLUSTER_ID>"
+            # 無視するNamespaceをカンマ区切りで指定（オプション）
+            # - name: IGNORED_NAMESPACES
+            #   value: "kube-system,monitoring,logging"
           image: ghcr.io/inakam/k8s-restart-notify:latest
           lifecycle:
             preStop:

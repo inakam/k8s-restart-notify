@@ -37,6 +37,8 @@ spec:
               value: "<YOUR_PROJECT_ID>"
             - name: CLUSTER_ID
               value: "<YOUR_CLUSTER_ID>"
+            - name: IGNORED_NAMESPACES
+              value: "kube-system,default"
           image: ghcr.io/inakam/k8s-restart-notify:latest
           lifecycle:
             preStop:
