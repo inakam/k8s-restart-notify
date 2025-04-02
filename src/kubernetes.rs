@@ -48,7 +48,7 @@ pub async fn watch(
 
     let notification_config =
         std::env::var("SLACK_NOTIFICATION_CONFIG")?.parse::<NotificationConfig>()?;
-    
+
     if !ignored_namespaces.is_empty() {
         log::info!("Ignoring namespaces: {:?}", ignored_namespaces);
     }
@@ -96,7 +96,11 @@ pub async fn watch(
                 // 無視するNamespaceリストに含まれている場合は処理をスキップ
                 if let Some(namespace) = p.namespace() {
                     if ignored_namespaces.contains(&namespace) {
-                        log::debug!("Skipping pod in ignored namespace during init: {}/{}", namespace, p.name_any());
+                        log::debug!(
+                            "Skipping pod in ignored namespace during init: {}/{}",
+                            namespace,
+                            p.name_any()
+                        );
                         continue;
                     }
                 }
@@ -125,7 +129,11 @@ async fn process_applied(
     // 無視するNamespaceリストに含まれている場合は処理をスキップ
     if let Some(namespace) = p.namespace() {
         if ignored_namespaces.contains(&namespace) {
-            log::debug!("Skipping pod in ignored namespace: {}/{}", namespace, p.name_any());
+            log::debug!(
+                "Skipping pod in ignored namespace: {}/{}",
+                namespace,
+                p.name_any()
+            );
             return Ok(());
         }
     }
@@ -163,8 +171,16 @@ async fn process_applied(
                         continue;
                     }
                 };
-                let message =
-                    describe_container_status(client.clone(), p, container, channel, region, project_id, cluster_id).await;
+                let message = describe_container_status(
+                    client.clone(),
+                    p,
+                    container,
+                    channel,
+                    region,
+                    project_id,
+                    cluster_id,
+                )
+                .await;
                 log::debug!(
                     "Message queue capacity: {} / {}",
                     tx.capacity(),
@@ -438,38 +454,40 @@ mod tests {
         assert_eq!(config.find_channel("ignore", "bar", "baz"), None);
         assert_eq!(config.find_channel("nomatch", "bar", "baz"), None);
     }
-    
+
     #[test]
     fn test_ignored_namespaces() {
         let mut ignored_namespaces = HashSet::new();
         ignored_namespaces.insert("kube-system".to_string());
         ignored_namespaces.insert("monitoring".to_string());
-        
+
         assert!(ignored_namespaces.contains("kube-system"));
         assert!(ignored_namespaces.contains("monitoring"));
         assert!(!ignored_namespaces.contains("default"));
         assert!(!ignored_namespaces.contains("app"));
-        
+
         // IGNORED_NAMESPACES環境変数のパース処理のテスト
         let env_value = "kube-system,monitoring,logging";
-        let parsed_namespaces = env_value.split(',')
+        let parsed_namespaces = env_value
+            .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect::<HashSet<String>>();
-        
+
         assert_eq!(parsed_namespaces.len(), 3);
         assert!(parsed_namespaces.contains("kube-system"));
         assert!(parsed_namespaces.contains("monitoring"));
         assert!(parsed_namespaces.contains("logging"));
         assert!(!parsed_namespaces.contains("default"));
-        
+
         // 空文字やスペースの処理を確認
         let env_value = "kube-system, ,monitoring,  ,logging";
-        let parsed_namespaces = env_value.split(',')
+        let parsed_namespaces = env_value
+            .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect::<HashSet<String>>();
-        
+
         assert_eq!(parsed_namespaces.len(), 3);
         assert!(parsed_namespaces.contains("kube-system"));
         assert!(parsed_namespaces.contains("monitoring"));
